@@ -1,0 +1,10 @@
+SXCM_GIT_REPO=https://github.com/startxfr/sxcm-cluster-repo.git
+SXCM_GIT_LOGIN=startxfr
+SXCM_GIT_PASSWORD=JH10qp47loui$
+SXCM_GIT_BRANCH=myClusterName
+SXCM_RHN_USER=
+SXCM_RHN_PASSWORD=
+SXCM_RHN_EMAIL=
+SXCM_RHN_PULLSECRET=
+SXCM_CLUSTER_NAME=myClusterName
+PROFILE=default

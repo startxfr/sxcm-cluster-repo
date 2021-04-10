@@ -1,0 +1,60 @@
+apiVersion: v1
+baseDomain: startx.fr
+metadata:
+  name: myClusterName
+  annotations:
+    hourlyCost: "0,72 "
+    description: "3 master (4Vcpu, 16Go RAM, 120Go gp2  120iop) +  3 worker ( 2Vcpu,   8Go RAM, 120Go gp2  120iop) - [AWS Paris ]"
+    descriptionTab: "| 3  | 4  | 16  | 120 | gp2 | 120  | 3  | 2  | 8   | 120 | gp2 | 120  | AWS Paris "
+    descriptionClusterconfig: argocd,pipeline,istio,quaysec,machine,workspaces
+    clusterconfig: argocd-project,argocd-deploy,infra,auth,rbac,infra,machine,console,storage,pipeline,istio,workspaces
+compute:
+  - name: worker
+    hyperthreading: Enabled
+    replicas: 3
+    platform:
+      aws:
+        type: t3a.large
+        zones:
+          - eu-west-3a
+          - eu-west-3b
+          - eu-west-3c
+        rootVolume:
+          iops: 120
+          size: 120
+          type: gp2
+controlPlane:
+  hyperthreading: Enabled
+  name: master
+  replicas: 3
+  platform:
+    aws:
+      type: t3a.xlarge
+      zones:
+        - eu-west-3a
+        - eu-west-3b
+        - eu-west-3c
+      rootVolume:
+        iops: 120
+        size: 120
+        type: gp2
+networking:
+  clusterNetwork:
+    - cidr: 10.128.0.0/14
+      hostPrefix: 23
+  machineCIDR: 10.10.0.0/16
+  networkType: OpenShiftSDN
+  serviceNetwork:
+    - 172.30.0.0/16
+platform:
+  aws:
+    region: eu-west-3
+    userTags:
+      project: sxsf
+      cluster: myClusterName
+      profile: default
+      environment: test
+      projectOwner: chris
+pullSecret: ''
+sshKey: |
+  __ocpSshPublickey__
