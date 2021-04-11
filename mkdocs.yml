@@ -1,4 +1,4 @@
-site_name: STARTX SXCM gitops cluster repo example
+site_name: SXCM gitops cluster repo example
 theme:
     name: readthedocs
     highlightjs: true
