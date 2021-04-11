@@ -1,10 +1,6 @@
 SXCM_GIT_REPO=https://github.com/startxfr/sxcm-cluster-repo.git
-SXCM_GIT_LOGIN=startxfr
-SXCM_GIT_PASSWORD=xxxx
 SXCM_GIT_BRANCH=myClusterName
 SXCM_RHN_USER=startx_cl
-SXCM_RHN_PASSWORD=xxxx
 SXCM_RHN_EMAIL=cl@startx.fr
-SXCM_RHN_PULLSECRET={"auths":{"cloud.openshift.com":{"auth":"XXXX","email":"cl@startx.fr"},"quay.io":{"auth":"XXXX","email":"cl@startx.fr"},"registry.connect.redhat.com":{"auth":"XXXX","email":"cl@startx.fr"},"registry.redhat.io":{"auth":"XXXX","email":"cl@startx.fr"}}}
 SXCM_CLUSTER_NAME=myClusterName
 PROFILE=default

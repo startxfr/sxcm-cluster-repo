@@ -55,6 +55,6 @@ platform:
       profile: default
       environment: test
       projectOwner: chris
-pullSecret: '{}'
+pullSecret: '{"auths":{}}'
 sshKey: |
   ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDQQwcTImdmOwnwDyvK3N9s0gtfB9Kyw/deeTTo+b/7+asfqtHDYf3WyCm5iXms42PMlKhC0gCKrjNe0J/gML5Nq/zkV+CzCoqwk9H4sVX/szH2gDR6nJukP5GQrvwH7mmRRFGKLkavTTg9WwH3pgRDhpKZKzbhVE8kFr7WVh46pfd6bgt3aFHrZEqA1J/a7TpAD6UZkHWE20KcwU7z01Peo3EKA9QAibuUhFkBFhyvfHBNeJoTBuOWRReTKn0lSyUJ1P9IKL8u/ghug6+wJn8Q96gqwvo7fY6SIB83h1bXolkZn4cjnQPkNs5GAlK8Uvcn1l+6KJlSdPQAuVSczDktUbVdt0rfmH0bc3ZiJPoWK2DYkBBdyt8ermew6qeN6SB2Xfov7hyGOaAiDPUeYFYO9B2W0fShryVH7LOt6REYH4kgi1O1BD0PcS7JozkUoUAT+ngott8C3Xg5WBY3MPz7SPJytB36SiYOCTcMayU0rNDEo+PBbnufP5whyRLt6Yk= cl@station-fedora.alcor2.startx.fr
