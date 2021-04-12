@@ -7,7 +7,7 @@ For more informations and how to install sxcm, you can visit the [startx sxcm ho
 
 ## 1. Requirements
 
-You must follow the [sxcm system requirements and install documentation](https://sxcm.readthedocs.io/en/stable/1-requirement/) to get and install the sxcm cli.
+You must follow the [sxcm system requirements and install documentation](https://sxcm.readthedocs.io/en/latest/1-requirements/) to get and install the sxcm cli.
 
 ## 2. global config
 
@@ -19,6 +19,22 @@ sxcm setup git https://github.com/startxfr/sxcm-cluster-repo.git
 ```
 
 ## 3. Cluster creation
+
+### Import existing myClusterName cluster
+
+```bash
+# import the undeployed example
+sxcm import myClusterName
+# display information about the cluster 
+sxcm info
+# deploy this cluster
+sxcm deploy
+# connect to this cluster
+sxcm connect
+# display various cluster informations
+oc get project
+oc get nodes
+```
 
 ### Import existing undeployed cluster
 
@@ -70,8 +86,8 @@ sxcm delete
 
 ## 5. Release lifecycle
 
-If you want to have move information about the sxcm relese lifecycle, you can read the [release lifecycle](https://sxcm.readthedocs.io/en/stable/5-release-lifecycle/).
+If you want to have more information about the sxcm relese lifecycle, you can read the [release lifecycle](https://sxcm.readthedocs.io/en/stable/5-release-lifecycle/).
 
 ## 6. Release history
 
-If you want to have move information about the various sxcm release and their content, you can read the [release history](https://sxcm.readthedocs.io/en/stable/6-release-history/).
+If you want to have more information about the various sxcm release and their content, you can read the [release history](https://sxcm.readthedocs.io/en/stable/6-release-history/).
