@@ -1,6 +1,4 @@
 SXCM_GIT_REPO=https://github.com/startxfr/sxcm-cluster-repo.git
 SXCM_GIT_BRANCH=devel
-SXCM_RHN_USER=startx_cl
-SXCM_RHN_EMAIL=cl@startx.fr
 SXCM_CLUSTER_NAME=devel
 PROFILE=default
