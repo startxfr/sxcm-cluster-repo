@@ -1,4 +1,4 @@
 SXCM_GIT_REPO=https://github.com/startxfr/sxcm-cluster-repo.git
-SXCM_GIT_BRANCH=devel
-SXCM_CLUSTER_NAME=devel
+SXCM_GIT_BRANCH=main
+SXCM_CLUSTER_NAME=default
 PROFILE=default

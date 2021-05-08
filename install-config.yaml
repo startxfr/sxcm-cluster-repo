@@ -1,7 +1,7 @@
 apiVersion: v1
 baseDomain: startx.fr
 metadata:
-  name: mycluster
+  name: default
   annotations:
     hourlyCost: "0,72 "
     description: "3 master (4Vcpu, 16Go RAM, 120Go gp2  120iop) +  3 worker ( 2Vcpu,   8Go RAM, 120Go gp2  120iop) - [AWS Paris ]"
@@ -51,7 +51,7 @@ platform:
     region: eu-west-3
     userTags:
       project: sxsf
-      cluster: mycluster
+      cluster: default
       profile: default
       environment: test
       projectOwner: chris
