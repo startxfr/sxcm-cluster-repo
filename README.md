@@ -1,7 +1,6 @@
 # sxcm cluster-repo examples
 
-Example of a gitops repository to store cluster profile configuration and state
-for myClusterName sxcm default example
+Example of a gitops repository to store cluster profile configuration and state for myClusterName, undeployed and deployed cluster configs.
 
 
 ![sxcm](https://img.shields.io/badge/latest-v0.0.4-blue.svg) [![last commit](https://img.shields.io/github/last-commit/startxfr/sxcm-cluster-repo.svg)](https://github.com/startxfr/sxcm) [![Doc](https://readthedocs.org/projects/sxcm-cluster-repo/badge)](https://sxcm-cluster-repo.readthedocs.io)
