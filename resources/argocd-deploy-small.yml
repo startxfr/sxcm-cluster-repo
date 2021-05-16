@@ -1,0 +1,370 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: sxv4-cluster-argocd-deploy-template
+  annotations:
+    openshift.io/display-name: STARTX ArgoCD Deployment (gitops)
+    description: Deploy ArgoCD gitops tools according to sxcm definitions
+    iconClass: icon-openshift
+    tags: startx,cluster,config,admin,argocd,gitops
+    openshift.io/provider-display-name: STARTX
+    openshift.io/generated-by: sxcm
+    sxv4_console_timeout: "60"
+  labels:
+    template: sxv4-cluster-argocd-deploy-template
+    app.kubernetes.io/name: "sxv4-cluster-argocd-deploy-template"
+    app.kubernetes.io/managed-by: sxcm
+message: |-
+  Your ArgoCD gitops engine is now enabled
+
+  Scope             : ${SCOPE}
+  Cluster           : ${CLUSTER}
+  Operator          : container-security-operator.v1.0.5,red-hat-argocd.v3.3.0
+labels:
+  template: sxv4-cluster-argocd-deploy-template
+  app.kubernetes.io/managed-by: sxcm
+objects:
+  - kind: ArgoCD
+    apiVersion: argoproj.io/v1alpha1
+    metadata:
+      name: "startx"
+      namespace: "${ARGOCD_NS}"
+      labels: 
+        app.startx.fr/scope: "${SCOPE}"
+        app.startx.fr/cluster: "${CLUSTER}"
+        app.startx.fr/component: "argocd"
+        app.kubernetes.io/name: "startx-argocd"
+        # app.kubernetes.io/part-of: "${CLUSTER}"
+        app.kubernetes.io/version: "${VERSION}"
+        app.kubernetes.io/component: "argocd"
+      annotations: 
+        openshift.io/generated-by: sxcm
+    spec: 
+      applicationInstanceLabelKey: argocd.argoproj.io/instance
+      resourceCustomizations: |
+        PersistentVolumeClaim:
+          health.lua: |
+            hs = {}
+            if obj.status ~= nil then
+              if obj.status.phase ~= nil then
+                if obj.status.phase == "Pending" then
+                  hs.status = "Healthy"
+                  hs.message = obj.status.phase
+                  return hs
+                end
+                if obj.status.phase == "Bound" then
+                  hs.status = "Healthy"
+                  hs.message = obj.status.phase
+                  return hs
+                end
+              end
+            end
+            hs.status = "Progressing"
+            hs.message = "Waiting for certificate"
+            return hs
+      resourceExclusions: |
+        - apiGroups:
+          - repositories.stash.appscode.com
+          kinds:
+          - Snapshot
+          clusters:
+          - "*"
+      server:
+        autoscale:
+          enabled: false
+        insecure: true
+        resources:
+          limits:
+            cpu: 300m
+            ephemeral-storage: 100Mi
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            ephemeral-storage: 10Mi
+            memory: 64Mi
+        route:
+          enabled: true
+          tls:
+            termination: edge
+      statusBadgeEnabled: true
+      helpChatText: Chat with ops-team
+      helpChatURL: 'https://startx-france.slack.com/chatops'
+      usersAnonymousEnabled: false
+      controller:
+        appSync: 120s
+        processors:
+          operation: 5
+          status: 15
+        resources:
+          limits:
+            cpu: 1500m
+            ephemeral-storage: 256Mi
+            memory: 4Gi
+          requests:
+            cpu: 800m
+            ephemeral-storage: 64Mi
+            memory: 2Gi
+      ha:
+        enabled: false
+      redis:
+        resources:
+          limits:
+            cpu: 300m
+            ephemeral-storage: 50Mi
+            memory: 256Mi
+          requests:
+            cpu: 50m
+            ephemeral-storage: 10Mi
+            memory: 128Mi
+      dex:
+        openShiftOAuth: true
+        resources:
+          limits:
+            cpu: 200m
+            ephemeral-storage: 100Mi
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            ephemeral-storage: 50Mi
+            memory: 64Mi
+      rbac:
+        defaultPolicy: edit
+      grafana:
+        enabled: false
+        size: 1
+        resources:
+          limits:
+            cpu: 200m
+            ephemeral-storage: 100Mi
+            memory: 256Mi
+          requests:
+            cpu: 50m
+            ephemeral-storage: 50Mi
+            memory: 64Mi
+        route:
+          enabled: true
+        ingress:
+          enabled: false
+      prometheus:
+        enabled: true
+        size: 1
+        route:
+          enabled: true
+      repo:
+        mountsatoken: true
+        resources:
+          limits:
+            cpu: 300m
+            ephemeral-storage: 500Mi
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            ephemeral-storage: 100Mi
+            memory: 128Mi
+  # !!!!! warning sur les droits confies a argocd (creation de resources cluster)
+  - kind: ClusterRoleBinding
+    apiVersion: rbac.authorization.k8s.io/v1
+    metadata:
+      name: ${ARGOCD_NS}-controller-sa-crb
+      labels:
+        app.startx.fr/scope: "${SCOPE}"
+        app.startx.fr/cluster: "${CLUSTER}"
+        app.startx.fr/component: "argocd"
+        # app.kubernetes.io/part-of: "${CLUSTER}"
+        app.kubernetes.io/version: "${VERSION}"
+        app.kubernetes.io/component: "argocd"
+        app.kubernetes.io/name: "${SCOPE}-${ENV}-argocd-controller-sa-crb"
+      annotations: 
+        openshift.io/generated-by: sxcm
+    subjects:
+      - kind: User
+        apiGroup: rbac.authorization.k8s.io
+        name: system:serviceaccount:${ARGOCD_NS}:argocd-application-controller
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: cluster-admin
+  - kind: AppProject
+    apiVersion: argoproj.io/v1alpha1
+    metadata:
+      name: default
+      namespace: "${ARGOCD_NS}"
+      labels:
+        app.startx.fr/scope: "${SCOPE}"
+        app.startx.fr/cluster: "${CLUSTER}"
+        app.startx.fr/component: "argocd"
+        # app.kubernetes.io/part-of: "${CLUSTER}"
+        app.kubernetes.io/version: "${VERSION}"
+        app.kubernetes.io/component: "argocd"
+        app.kubernetes.io/name: "default-appproject"
+      annotations: 
+        openshift.io/generated-by: sxcm
+    spec:
+      sourceRepos:
+        - '*'
+      destinations:
+        - namespace: 'default'
+          server: '*'
+      clusterResourceWhitelist:
+        - group: '*'
+          kind: '*'
+      roles:
+      - name: dev
+        description: Read-only privileges to group dev in .default project
+        policies:
+        - g, dev, role:readonly
+        - p, role:startx-dev, *, get, .default/*, allow
+        groups:
+        - dev
+      - name: ops
+        description: Read-only (and sync) privileges to group ops in .default project
+        policies:
+        - p, role:startx-ops, clusters, get, .default/*, allow
+        - p, role:startx-ops, projects, get, .default/*, allow
+        - p, role:startx-ops, applications, get, .default/*, allow
+        - p, role:startx-ops, applications, sync, .default/*, allow
+        - p, role:startx-ops, repositories, get, .default/*, allow
+        - p, role:startx-ops, repositories, sync, .default/*, allow
+        - p, role:startx-ops, certificates, get, .default/*, allow
+        - g, ops, role:startx-ops
+        groups:
+        - ops
+      - name: devops
+        description: Read-only privileges to group devops in .default project
+        policies:
+        - p, role:startx-devops, clusters, get, .default/*, allow
+        - p, role:startx-devops, projects, get, .default/*, allow
+        - p, role:startx-devops, applications, get, .default/*, allow
+        - p, role:startx-devops, repositories, get, .default/*, allow
+        - p, role:startx-devops, certificates, get, .default/*, allow
+        - g, devops, role:startx-devops
+        groups:
+        - devops
+      - name: admin
+        description: All privileges to group admin in .default project
+        policies:
+        - p, role:startx-admin, *, *, default/*, allow
+        - g, system:cluster-admins, role:admin
+        groups:
+        - my-oidc-group
+        - system:cluster-admins
+        - admin
+  - kind: AppProject
+    apiVersion: argoproj.io/v1alpha1
+    metadata:
+      name: cluster-admin
+      namespace: "${ARGOCD_NS}"
+      labels:
+        app.startx.fr/scope: "${SCOPE}"
+        app.startx.fr/cluster: "${CLUSTER}"
+        app.startx.fr/component: "argocd"
+        # app.kubernetes.io/part-of: "${CLUSTER}"
+        app.kubernetes.io/version: "${VERSION}"
+        app.kubernetes.io/component: "argocd"
+        app.kubernetes.io/name: "cluster-admin-appproject"
+      annotations: 
+        openshift.io/generated-by: sxcm
+    spec:
+      sourceRepos:
+        - '*'
+      destinations:
+        - namespace: '*'
+          server: '*'
+      clusterResourceWhitelist:
+        - group: '*'
+          kind: '*'
+      roles:
+      - name: dev
+        description: Read-only privileges to group dev in cluster-admin project
+        policies:
+        - g, dev, role:readonly
+        - p, role:startx-dev, *, get, cluster-admin/*, allow
+        groups:
+        - dev
+      - name: ops
+        description: Read-only (and sync) privileges to group ops in cluster-admin project
+        policies:
+        - p, role:startx-ops, clusters, get, cluster-admin/*, allow
+        - p, role:startx-ops, projects, get, cluster-admin/*, allow
+        - p, role:startx-ops, applications, get, cluster-admin/*, allow
+        - p, role:startx-ops, applications, sync, cluster-admin/*, allow
+        - p, role:startx-ops, repositories, get, cluster-admin/*, allow
+        - p, role:startx-ops, repositories, sync, cluster-admin/*, allow
+        - p, role:startx-ops, certificates, get, cluster-admin/*, allow
+        - g, ops, role:startx-ops
+        groups:
+        - ops
+      - name: devops
+        description: Read-only privileges to group devops in cluster-admin project
+        policies:
+        - p, role:startx-devops, clusters, get, cluster-admin/*, allow
+        - p, role:startx-devops, projects, get, cluster-admin/*, allow
+        - p, role:startx-devops, applications, get, cluster-admin/*, allow
+        - p, role:startx-devops, repositories, get, cluster-admin/*, allow
+        - p, role:startx-devops, certificates, get, cluster-admin/*, allow
+        - g, devops, role:startx-devops
+        groups:
+        - devops
+      - name: admin
+        description: All privileges to group admin in cluster-admin project
+        policies:
+        - p, role:startx-admin, *, *, cluster-admin/*, allow
+        - g, system:cluster-admins, role:admin
+        groups:
+        - my-oidc-group
+        - system:cluster-admins
+        - admin
+parameters:
+  - name: ARGOCD_NS
+    displayName: The namespace where argocd server goes to
+    description: "Namespace to place argocd server to"
+    value: startx-argocd
+  - name: SCOPE
+    displayName: Project scope
+    description: "Project scope (ex: sxv4)"
+    value: sxv4
+  - name: CLUSTER
+    displayName: Cluster name
+    description: "Name of the current cluster  (ex: sxsf)"
+    value: sxsf
+  - name: ENV
+    displayName: Project environment
+    description: "Project environment (ex: dev, factory, preprod or prod)"
+    value: dev
+  - name: VERSION
+    displayName: Project version
+    description: "Project deployed release"
+    value: 3.9.x-dev
+  - name: AWS_ZONE
+    displayName: AWS zone
+    description: AWS availability zone
+    value: "eu-west-3"
+  - name: AWS_ACCESS_ID
+    displayName: AWS access ID
+    description: AWS Access ID used for accessing AWS ressources
+    value: "AKIA3QVVK7346YAAV32Z"
+  - name: AWS_ACCESS_KEY
+    displayName: AWS access Key
+    description: AWS Access Key used for accessing AWS ressources
+    value: "ZiMhYy1WB3qugYDNadKdaiWs5pnM/+vOnmccgPw"
+  - name: AWS_SMTP_ZONE
+    displayName: AWS SMTP zone
+    description: AWS availability zone for SES service
+    value: "eu-west-1"
+  - name: AWS_SMTP_USER
+    displayName: AWS SMTP User
+    description: AWS SMTP user
+    value: "AKIA3QVVK7346YAAV32Z"
+  - name: AWS_SMTP_PASSWORD
+    displayName: AWS SMTP User password
+    description: AWS SMTP password coresponding to the smtp user
+    value: "ZiMhYy1WB3qugYDNadKdaiWs5pnM/+vOnmccgPw"
+  - name: AWS_SMTP_FROM
+    displayName: AWS SMTP sender
+    description: AWS SMTP email of the sender
+    value: "cl@startx.fr"
+  - name: CLUSTER_PROFILE
+    displayName: Name of the cluster profile
+    description: "The name of the cluster profile"
+    value: default
+

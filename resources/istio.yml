@@ -1,0 +1,279 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: sxv4-cluster-istio-operator-template
+  annotations:
+    openshift.io/display-name: STARTX cluster Istio-operator (admin)
+    description: Deploy cluster-wide resources to enable istio according to sxcm definitions
+    iconClass: icon-openshift
+    tags: startx,cluster,config,admin,istio
+    openshift.io/provider-display-name: STARTX
+    openshift.io/generated-by: sxcm
+    sxv4_console_timeout: "30"
+  labels:
+    template: sxv4-cluster-istio-operator-template
+    app.kubernetes.io/name: "sxv4-cluster-istio-operator-template"
+    app.kubernetes.io/managed-by: sxcm
+message: |-
+  Your cluster component mesh support is now enabled
+
+  Scope             : ${SCOPE}
+  Cluster           : ${CLUSTER}
+  Operator          : servicemeshoperator.v1.1.2
+  Elasticsearch     : elasticsearch-operator.4.6
+  Resources NS      : ${NS}
+  Resources         : elasticsearch, kiali, servicemesh
+labels:
+  template: sxv4-cluster-istio-operator-template
+  app.kubernetes.io/managed-by: sxcm
+objects:
+- kind: Application
+  apiVersion: argoproj.io/v1alpha1
+  metadata:
+    name: startx-cluster-istio-project
+    namespace: "${ARGOCD_NS}"
+    labels:  &basic_labels
+      app.startx.fr/scope: "${SCOPE}"
+      app.startx.fr/cluster: "${CLUSTER}"
+      app.startx.fr/component: "cluster-istio"
+      app.kubernetes.io/name: "argoapp-cluster-istio-project-application"
+      app.kubernetes.io/part-of: ${CLUSTER}
+      app.kubernetes.io/version: "${VERSION}"
+      app.kubernetes.io/component: "cluster-istio"
+    annotations: &basic_annotations
+      openshift.io/generated-by: sxcm
+      # argocd.argoproj.io/manifest-generate-paths: .
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+  spec:
+    destination:
+      namespace: "${NS}"
+      server: 'https://kubernetes.default.svc'
+    info:
+      - name: teammail
+        value: dev@startx.fr
+    project: cluster-admin
+    source:
+      path: charts/cluster-istio/
+      repoURL: 'https://github.com/startxfr/helm-repository.git'
+      targetRevision: devel
+      helm:
+        valueFiles:
+          - values-startx.yaml
+        parameters:
+          - name: context.scope
+            value: "${SCOPE}"
+          - name: context.cluster
+            value: "${CLUSTER}"
+          - name: context.environment
+            value: "${ENV}"
+          - name: context.version
+            value: "${VERSION}"
+          - name: context.app
+            value: "startx-istio"
+          - name: project.enabled
+            value: "true"
+          - name: project.project.requester
+            value: "sxcm"
+          - name: operatorKiali.enabled
+            value: "false"
+          - name: operatorJaeger.enabled
+            value: "false"
+          - name: operatorElastic.enabled
+            value: "false"
+          - name: operatorIstio.enabled
+            value: "false"
+          - name: istio.enabled
+            value: "false"
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+      syncOptions:
+        - CreateNamespace=false
+        - Validate=true
+      retry:
+        limit: 5
+        backoff:
+          duration: 5s
+          factor: 2
+          maxDuration: 5m
+- kind: Application
+  apiVersion: argoproj.io/v1alpha1
+  metadata:
+    name: startx-cluster-istio-operator
+    namespace: "${ARGOCD_NS}"
+    labels: 
+      app.startx.fr/scope: "${SCOPE}"
+      app.startx.fr/cluster: "${CLUSTER}"
+      app.startx.fr/component: "cluster-istio"
+      app.kubernetes.io/name: "argoapp-cluster-istio-operator-application"
+      app.kubernetes.io/part-of: ${CLUSTER}
+      app.kubernetes.io/version: "${VERSION}"
+      app.kubernetes.io/component: "cluster-istio"
+    annotations: 
+      openshift.io/generated-by: sxcm
+      # argocd.argoproj.io/manifest-generate-paths: .
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+  spec:
+    destination:
+      namespace: "${NS}"
+      server: 'https://kubernetes.default.svc'
+    info:
+      - name: teammail
+        value: dev@startx.fr
+    project: cluster-admin
+    source:
+      path: charts/cluster-istio/
+      repoURL: 'https://github.com/startxfr/helm-repository.git'
+      targetRevision: devel
+      helm:
+        valueFiles:
+          - values-startx.yaml
+        parameters:
+          - name: context.scope
+            value: "${SCOPE}"
+          - name: context.cluster
+            value: "${CLUSTER}"
+          - name: context.environment
+            value: "${ENV}"
+          - name: context.version
+            value: "${VERSION}"
+          - name: context.app
+            value: "startx-istio"
+          - name: project.enabled
+            value: "false"
+          - name: operatorKiali.enabled
+            value: "true"
+          - name: operatorJaeger.enabled
+            value: "true"
+          - name: operatorElastic.enabled
+            value: "false" # provisionning done during cluster-infra config
+          - name: operatorIstio.enabled
+            value: "true"
+          - name: istio.enabled
+            value: "false"
+    syncPolicy:
+      automated:
+        prune: false
+        selfHeal: false
+      syncOptions:
+        - CreateNamespace=false
+        - Validate=true
+      retry:
+        limit: 5
+        backoff:
+          duration: 5s
+          factor: 2
+          maxDuration: 5m
+    # ignoreDifferences:
+    #   - group: operators.coreos.com
+    #     kind: OperatorGroup
+    #     namespace: "${NS}"
+    #     jsonPointers:
+    #       - /metadata/annotations/olm.providedAPIs
+    #   - group: operators.coreos.com
+    #     kind: OperatorGroup
+    #     namespace: "openshift-operators"
+    #     jsonPointers:
+    #       - /metadata/annotations/olm.providedAPIs
+- kind: Application
+  apiVersion: argoproj.io/v1alpha1
+  metadata:
+    name: startx-cluster-istio-instance
+    namespace: "${ARGOCD_NS}"
+    labels: 
+      app.startx.fr/scope: "${SCOPE}"
+      app.startx.fr/cluster: "${CLUSTER}"
+      app.startx.fr/component: "cluster-istio"
+      app.kubernetes.io/name: "argoapp-cluster-istio-instance-application"
+      app.kubernetes.io/part-of: ${CLUSTER}
+      app.kubernetes.io/version: "${VERSION}"
+      app.kubernetes.io/component: "cluster-istio"
+    annotations:
+      openshift.io/generated-by: sxcm
+      # argocd.argoproj.io/manifest-generate-paths: .
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+  spec:
+    destination:
+      namespace: "${NS}"
+      server: 'https://kubernetes.default.svc'
+    info:
+      - name: teammail
+        value: dev@startx.fr
+    project: cluster-admin
+    source:
+      path: charts/cluster-istio/
+      repoURL: 'https://github.com/startxfr/helm-repository.git'
+      targetRevision: devel
+      helm:
+        valueFiles:
+          - values-startx.yaml
+        parameters:
+          - name: context.scope
+            value: "${SCOPE}"
+          - name: context.cluster
+            value: "${CLUSTER}"
+          - name: context.environment
+            value: "${ENV}"
+          - name: context.version
+            value: "${VERSION}"
+          - name: context.app
+            value: "startx-istio"
+          - name: project.enabled
+            value: "false"
+          - name: operatorKiali.enabled
+            value: "false"
+          - name: operatorJaeger.enabled
+            value: "false"
+          - name: operatorElastic.enabled
+            value: "false"
+          - name: operatorIstio.enabled
+            value: "false"
+          - name: istio.enabled
+            value: "true"
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+      syncOptions:
+        - CreateNamespace=false
+        - Validate=true
+      retry:
+        limit: 3
+        backoff:
+          duration: 60s
+          factor: 1
+          maxDuration: 60s
+parameters:
+  - name: ARGOCD_NS
+    displayName: The namespace where argocd server goes to
+    description: "Namespace to place argocd server to"
+    value: startx-argocd
+  - name: NS
+    displayName: The namespace where objects goes to
+    description: "Namespace to place objects to"
+    value: startx-istio
+  - name: SCOPE
+    displayName: Project scope
+    description: "Project scope (ex: sxv4)"
+    value: sxv4
+  - name: CLUSTER
+    displayName: Cluster name
+    description: "Name of the current cluster  (ex: sxsf)"
+    value: sxsf
+  - name: ENV
+    displayName: Project environment
+    description: "Project environment (ex: dev, factory, preprod or prod)"
+    value: dev
+  - name: VERSION
+    displayName: Project version
+    description: "Project deployed release"
+    value: 3.9.x-dev
+  - name: CLUSTER_PROFILE
+    displayName: Name of the cluster profile
+    description: "The name of the cluster profile"
+    value: default
+

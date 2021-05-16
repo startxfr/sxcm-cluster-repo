@@ -1,0 +1,112 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: sxv4-cluster-rbac-template
+  annotations:
+    openshift.io/display-name: STARTX cluster RBAC (admin)
+    description: Deploy cluster-wide resources to configure user permissions according to sxcm definitions
+    iconClass: icon-openshift
+    tags: startx,cluster,config,admin,rbac
+    openshift.io/provider-display-name: STARTX
+    openshift.io/generated-by: sxcm
+    sxv4_console_timeout: "5"
+  labels:
+    template: sxv4-cluster-rbac-template
+    app.kubernetes.io/name: "sxv4-cluster-rbac-template"
+    app.kubernetes.io/managed-by: sxcm
+message: |-
+  Your cluster-wide RBAC are configured.
+
+  Scope             : ${SCOPE}
+  Cluster           : ${CLUSTER}
+labels:
+  template: sxv4-cluster-rbac-template
+  app.kubernetes.io/managed-by: sxcm
+objects:
+- kind: Application
+  apiVersion: argoproj.io/v1alpha1
+  metadata:
+    name: startx-cluster-rbac
+    namespace: "${ARGOCD_NS}"
+    labels:  &basic_labels
+      app.startx.fr/scope: "${SCOPE}"
+      app.startx.fr/cluster: "${CLUSTER}"
+      app.startx.fr/component: "cluster-rbac"
+      app.kubernetes.io/name: "argoapp-cluster-rbac-application"
+      app.kubernetes.io/part-of: ${CLUSTER}
+      app.kubernetes.io/version: "${VERSION}"
+      app.kubernetes.io/component: "cluster-rbac"
+    annotations: &basic_annotations
+      openshift.io/generated-by: sxcm
+      # argocd.argoproj.io/manifest-generate-paths: .
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+  spec:
+    destination:
+      namespace: "${ARGOCD_NS}"
+      server: 'https://kubernetes.default.svc'
+    info:
+      - name: teammail
+        value: dev@startx.fr
+    project: cluster-admin
+    source:
+      path: charts/cluster-rbac/
+      repoURL: 'https://github.com/startxfr/helm-repository.git'
+      targetRevision: devel
+      helm:
+        valueFiles:
+          - values-startx.yaml
+        parameters:
+          - name: context.scope
+            value: "${SCOPE}"
+          - name: context.cluster
+            value: "${CLUSTER}"
+          - name: context.environment
+            value: "${ENV}"
+          - name: context.version
+            value: "${VERSION}"
+          - name: context.app
+            value: "startx-infra"
+          # - name: groups.enabled
+          #   value: "true"
+          # - name: groups.list[0].name
+          #   value: "developper"
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+      syncOptions:
+        - CreateNamespace=false
+        - Validate=true
+      retry:
+        limit: 2
+        backoff:
+          duration: 5s
+          factor: 2
+          maxDuration: 20s
+parameters:
+  - name: ARGOCD_NS
+    displayName: The namespace where argocd server goes to
+    description: "Namespace to place argocd server to"
+    value: startx-argocd
+  - name: SCOPE
+    displayName: Project scope
+    description: "Project scope (ex: sxv4)"
+    value: sxv4
+  - name: CLUSTER
+    displayName: Cluster name
+    description: "Name of the current cluster  (ex: sxsf)"
+    value: sxsf
+  - name: ENV
+    displayName: Project environment
+    description: "Project environment (ex: dev, factory, preprod or prod)"
+    value: dev
+  - name: VERSION
+    displayName: Project version
+    description: "Project deployed release"
+    value: 3.9.x-dev
+  - name: CLUSTER_PROFILE
+    displayName: Name of the cluster profile
+    description: "The name of the cluster profile"
+    value: default
+
