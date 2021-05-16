@@ -1,0 +1,271 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: sxv4-cluster-argocd-template
+  annotations:
+    openshift.io/display-name: STARTX ArgoCD (gitops)
+    description: Deploy ArgoCD gitops environment to sxcm definitions
+    iconClass: icon-openshift
+    tags: startx,cluster,config,admin,argocd,gitops
+    openshift.io/provider-display-name: STARTX
+    openshift.io/generated-by: sxcm
+    sxv4_console_timeout: "20"
+  labels:
+    template: sxv4-cluster-argocd-template
+    app.kubernetes.io/name: "sxv4-cluster-argocd-template"
+    app.kubernetes.io/managed-by: sxcm
+message: |-
+  Your ArgoCD gitops project is now configured
+
+  Scope             : ${SCOPE}
+  Cluster           : ${CLUSTER}
+  Operator          : red-hat-argocd.v3.3.2-20200903
+labels:
+  template: sxv4-cluster-argocd-template
+  app.kubernetes.io/managed-by: sxcm
+objects:
+  - kind: Project
+    apiVersion: project.openshift.io/v1
+    metadata:
+      name: "${ARGOCD_NS}"
+      labels:  &basic_labels
+        app.startx.fr/scope: "${SCOPE}"
+        app.startx.fr/cluster: "${CLUSTER}"
+        app.startx.fr/component: "argocd"
+        app.kubernetes.io/name: "${ARGOCD_NS}-project"
+        app.kubernetes.io/part-of: ${CLUSTER}
+        app.kubernetes.io/version: "${VERSION}"
+        app.kubernetes.io/component: "argocd"
+      annotations:
+        openshift.io/description: "STARTX ArgoCD control plane"
+        openshift.io/display-name: "Startx ARGOCD"
+        openshift.io/requester: sxcm
+  - kind: ResourceQuota
+    apiVersion: v1
+    metadata:
+      name: ${ARGOCD_NS}-quotas
+      namespace: "${ARGOCD_NS}"
+      labels:
+        <<: *basic_labels
+        app.kubernetes.io/name: "${ARGOCD_NS}-quotas"
+      annotations: &basic_annotations
+        openshift.io/generated-by: sxcm
+    spec:
+      hard:
+        limits.cpu: "12000m"
+        limits.memory: "12Gi"
+        requests.cpu: "2500m"
+        requests.memory: "4Gi"
+        requests.storage: "0"
+        persistentvolumeclaims: "0"
+        ephemeral-storage: "10Gi"
+        gp2.storageclass.storage.k8s.io/requests.storage: "0Gi"
+        gp2.storageclass.storage.k8s.io/persistentvolumeclaims: "0"
+        aws-generic-retain.storageclass.storage.k8s.io/requests.storage: "0"
+        aws-generic-retain.storageclass.storage.k8s.io/persistentvolumeclaims: "0"
+        aws-generic-delete.storageclass.storage.k8s.io/requests.storage: "0"
+        aws-generic-delete.storageclass.storage.k8s.io/persistentvolumeclaims: "0"
+        aws-fast-retain.storageclass.storage.k8s.io/requests.storage: "0"
+        aws-fast-retain.storageclass.storage.k8s.io/persistentvolumeclaims: "0"
+        aws-fast-delete.storageclass.storage.k8s.io/requests.storage: "0"
+        aws-fast-delete.storageclass.storage.k8s.io/persistentvolumeclaims: "0"
+        aws-slow-retain.storageclass.storage.k8s.io/requests.storage: "0"
+        aws-slow-retain.storageclass.storage.k8s.io/persistentvolumeclaims: "0"
+        aws-slow-delete.storageclass.storage.k8s.io/requests.storage: "0"
+        aws-slow-delete.storageclass.storage.k8s.io/persistentvolumeclaims: "0"
+        ocs-generic-delete.storageclass.storage.k8s.io/requests.storage: "0"
+        ocs-generic-delete.storageclass.storage.k8s.io/persistentvolumeclaims: "0"
+        ocs-generic-retain.storageclass.storage.k8s.io/requests.storage: "0"
+        ocs-generic-retain.storageclass.storage.k8s.io/persistentvolumeclaims: "0"
+        ocs-fs-delete.storageclass.storage.k8s.io/requests.storage: "0"
+        ocs-fs-delete.storageclass.storage.k8s.io/persistentvolumeclaims: "0"
+        ocs-fs-retain.storageclass.storage.k8s.io/requests.storage: "0"
+        ocs-fs-retain.storageclass.storage.k8s.io/persistentvolumeclaims: "0"
+        ocs-storagecluster-ceph-rbd.storageclass.storage.k8s.io/requests.storage: "0"
+        ocs-storagecluster-ceph-rbd.storageclass.storage.k8s.io/persistentvolumeclaims: "0"
+        openshift-storage.noobaa.io.storageclass.storage.k8s.io/requests.storage: "0"
+        openshift-storage.noobaa.io.storageclass.storage.k8s.io/persistentvolumeclaims: "0"
+        pods: "15"
+        services: "15"
+        services.loadbalancers: "0"
+        services.nodeports: "0"
+        secrets: "45"
+        configmaps: "40"
+        replicationcontrollers: "0"
+        openshift.io/imagestreams: "0"
+        count/replicasets.apps: "30"
+        count/daemonsets.apps: "0"
+        count/deployments.apps: "15"
+  - kind: LimitRange
+    apiVersion: v1
+    metadata:
+      name: ${ARGOCD_NS}-limits
+      namespace: "${ARGOCD_NS}"
+      labels:
+        <<: *basic_labels
+        app.kubernetes.io/name: "${ARGOCD_NS}-limitrange"
+      annotations:
+        <<: *basic_annotations
+    spec:
+      limits:
+        - type: "Pod"
+          min:
+            cpu: 20m
+            memory: 32Mi
+          max:
+            cpu: "6000m"
+            ephemeral-storage: 712Mi
+            memory: "4Gi"
+        - type: "Container"
+          defaultRequest:
+            cpu: 100m
+            memory: 128Mi
+          default:
+            cpu: 200m
+            memory: 256Mi
+          min:
+            cpu: 20m
+            # ephemeral-storage: 32Mi
+            memory: 32Mi
+          max:
+            cpu: "6000m"
+            ephemeral-storage: 512Mi
+            memory: "4Gi"
+  - kind: RoleBinding
+    apiVersion: rbac.authorization.k8s.io/v1
+    metadata:
+      name: devops-rb
+      namespace: ${ARGOCD_NS}
+      labels:
+        <<: *basic_labels
+        app.kubernetes.io/name: "devops-rolebinding"
+      annotations:
+        <<: *basic_annotations
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: edit
+    subjects:
+      - kind: Group
+        apiGroup: rbac.authorization.k8s.io
+        name: "devops"
+  - kind: RoleBinding
+    apiVersion: rbac.authorization.k8s.io/v1
+    metadata:
+      name: dev-argocd-rb
+      namespace: ${ARGOCD_NS}
+      labels:
+        <<: *basic_labels
+        app.kubernetes.io/name: "dev-rolebinding"
+      annotations:
+        <<: *basic_annotations
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: appprojects.argoproj.io-v1alpha1-view
+    subjects:
+      - kind: Group
+        apiGroup: rbac.authorization.k8s.io
+        name: dev
+  - kind: RoleBinding
+    apiVersion: rbac.authorization.k8s.io/v1
+    metadata:
+      name: devops-argocd-rb
+      namespace: ${ARGOCD_NS}
+      labels:
+        <<: *basic_labels
+        app.kubernetes.io/name: "devops-rolebinding"
+      annotations:
+        <<: *basic_annotations
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: appprojects.argoproj.io-v1alpha1-admin
+    subjects:
+      - kind: Group
+        apiGroup: rbac.authorization.k8s.io
+        name: "devops"
+      - kind: Group
+        apiGroup: rbac.authorization.k8s.io
+        name: "system:cluster-admins"
+  - kind: OperatorGroup
+    apiVersion: operators.coreos.com/v1
+    metadata:
+      name: ${ARGOCD_NS}
+      namespace: ${ARGOCD_NS}
+      labels:
+        <<: *basic_labels
+        app.kubernetes.io/name: "${ARGOCD_NS}-operatorgroup"
+      annotations:
+        olm.providedAPIs: AppProject.v1alpha1.argoproj.io,Application.v1alpha1.argoproj.io,ArgoCD.v1alpha1.argoproj.io,ArgoCDExport.v1alpha1.argoproj.io
+        <<: *basic_annotations
+    spec:
+      targetNamespaces:
+        - ${ARGOCD_NS}
+  - kind: Subscription
+    apiVersion: operators.coreos.com/v1alpha1
+    metadata:
+      name: argocd-operator
+      namespace: "${ARGOCD_NS}"
+      labels:
+        <<: *basic_labels
+        app.kubernetes.io/name: "argocd-operator-subscription"
+      annotations:
+        <<: *basic_annotations
+    spec:
+      channel: alpha
+      startingCSV: argocd-operator.v0.0.14
+      # channel: argocd-v3.3
+      # startingCSV: red-hat-argocd.v3.3.2-20200903
+      installPlanApproval: Automatic
+      name: argocd-operator
+      source: community-operators
+      sourceNamespace: ${MARKETPLACE_NS}
+  - kind: NetworkPolicy
+    apiVersion: networking.k8s.io/v1
+    metadata:
+      name: registry-allow-all-ns
+      namespace: "${ARGOCD_NS}"
+    spec:
+      podSelector:
+        matchLabels:
+          app: argocd-operator
+          argocd-enterprise-component: app
+          argocd-enterprise-cr: startx
+      ingress:
+        - from:
+            - namespaceSelector: {}
+parameters:
+  - name: ARGOCD_NS
+    displayName: The namespace where argocd server goes to
+    description: "Namespace to place argocd server to"
+    value: startx-argocd
+  - name: OPERATOR_NS
+    displayName: The operator namespace where objects goes to
+    description: "operator namespace to place objects to"
+    value: openshift-operators
+  - name: MARKETPLACE_NS
+    displayName: The operator marketplace namespace where objects goes to
+    description: "operator marketplace namespace to place objects to"
+    value: openshift-marketplace
+  - name: SCOPE
+    displayName: Project scope
+    description: "Project scope (ex: sxv4)"
+    value: sxv4
+  - name: CLUSTER
+    displayName: Cluster name
+    description: "Name of the current cluster  (ex: sxsf)"
+    value: sxsf
+  - name: ENV
+    displayName: Project environment
+    description: "Project environment (ex: dev, factory, preprod or prod)"
+    value: dev
+  - name: VERSION
+    displayName: Project version
+    description: "Project deployed release"
+    value: 3.9.x-dev
+  - name: CLUSTER_PROFILE
+    displayName: Name of the cluster profile
+    description: "The name of the cluster profile"
+    value: default
+

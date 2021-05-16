@@ -1,0 +1,298 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: sxv4-cluster-infra-template
+  annotations:
+    openshift.io/display-name: STARTX cluster Infra (admin)
+    description: Deploy cluster-wide resources to configure cluster infrastructure according to sxcm definitions
+    iconClass: icon-openshift
+    tags: startx,cluster,config,admin,infra
+    openshift.io/provider-display-name: STARTX
+    openshift.io/generated-by: sxcm
+    sxv4_console_timeout: "10"
+  labels:
+    template: sxv4-cluster-infra-template
+    app.kubernetes.io/name: "sxv4-cluster-infra-template"
+    app.kubernetes.io/managed-by: sxcm
+message: |-
+  Your cluster configuration is now ready
+
+  Scope             : ${SCOPE}
+  Cluster           : ${CLUSTER}
+labels:
+  template: sxv4-cluster-infra-template
+  app.kubernetes.io/managed-by: sxcm
+objects:
+- kind: Application
+  apiVersion: argoproj.io/v1alpha1
+  metadata:
+    name: startx-cluster-infra-config
+    namespace: "${ARGOCD_NS}"
+    labels:  
+      app.startx.fr/scope: "${SCOPE}"
+      app.startx.fr/cluster: "${CLUSTER}"
+      app.startx.fr/component: "cluster-infra-config"
+      app.kubernetes.io/name: "argoapp-cluster-infra-config-application"
+      app.kubernetes.io/part-of: ${CLUSTER}
+      app.kubernetes.io/version: "${VERSION}"
+      app.kubernetes.io/component: "cluster-infra-config"
+    annotations: 
+      openshift.io/generated-by: sxcm
+      # argocd.argoproj.io/manifest-generate-paths: .
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+  spec:
+    destination:
+      namespace: "${ARGOCD_NS}"
+      server: 'https://kubernetes.default.svc'
+    info:
+      - name: teammail
+        value: dev@startx.fr
+    project: cluster-admin
+    source:
+      path: charts/cluster-config/
+      repoURL: 'https://github.com/startxfr/helm-repository.git'
+      targetRevision: devel
+      helm:
+        valueFiles:
+          - values-startx.yaml
+        parameters:
+          - name: context.scope
+            value: "${SCOPE}"
+          - name: context.cluster
+            value: "${CLUSTER}"
+          - name: context.environment
+            value: "${ENV}"
+          - name: context.version
+            value: "${VERSION}"
+          - name: context.app
+            value: "startx-infra"
+          - name: autoscaling.enabled
+            value: "false"
+          - name: clusterversion.enabled
+            value: "false"
+          - name: alertmanager.enabled
+            value: "false"
+          - name: alertmanager.pagerDutty.key
+            value: "_pager_dutty_startx_key_"
+          - name: alertmanager.api.endpoint
+            value: "_startx_api_endpoint_"
+          - name: imageprunner.enabled
+            value: "true"
+          - name: imageprunner.schedule
+            value: "30 * * * *"
+          - name: imageprunner.suspend
+            value: "false" 
+          - name: projecttemplate.enabled
+            value: "true" 
+          - name: redhat.operators
+            value: "false" 
+          - name: operatorElastic.enabled
+            value: "false" 
+          - name: operatorGlobal.enabled
+            value: "false" 
+          - name: helm_reposistory.enabled
+            value: "true" 
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+      syncOptions:
+        - CreateNamespace=false
+        - Validate=true
+      retry:
+        limit: 5
+        backoff:
+          duration: 5s
+          factor: 2
+          maxDuration: 60s
+- kind: Application
+  apiVersion: argoproj.io/v1alpha1
+  metadata:
+    name: startx-cluster-infra-elastic
+    namespace: "${ARGOCD_NS}"
+    labels:  
+      app.startx.fr/scope: "${SCOPE}"
+      app.startx.fr/cluster: "${CLUSTER}"
+      app.startx.fr/component: "cluster-infra-elastic"
+      app.kubernetes.io/name: "argoapp-cluster-infra-elastic-application"
+      app.kubernetes.io/part-of: ${CLUSTER}
+      app.kubernetes.io/version: "${VERSION}"
+      app.kubernetes.io/component: "cluster-infra-elastic"
+    annotations: 
+      openshift.io/generated-by: sxcm
+      # argocd.argoproj.io/manifest-generate-paths: .
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+  spec:
+    destination:
+      namespace: "${ARGOCD_NS}"
+      server: 'https://kubernetes.default.svc'
+    info:
+      - name: teammail
+        value: dev@startx.fr
+    project: cluster-admin
+    source:
+      path: charts/cluster-config/
+      repoURL: 'https://github.com/startxfr/helm-repository.git'
+      targetRevision: devel
+      helm:
+        valueFiles:
+          - values-startx-elastic.yaml
+        parameters:
+          - name: context.scope
+            value: "${SCOPE}"
+          - name: context.cluster
+            value: "${CLUSTER}"
+          - name: context.environment
+            value: "${ENV}"
+          - name: context.version
+            value: "${VERSION}"
+          - name: context.app
+            value: "startx-infra"
+          - name: autoscaling.enabled
+            value: "false"
+          - name: clusterversion.enabled
+            value: "false"
+          - name: alertmanager.enabled
+            value: "false"
+          - name: imageprunner.enabled
+            value: "false"
+          - name: projecttemplate.enabled
+            value: "false" 
+          - name: redhat.operators
+            value: "true" 
+          - name: operatorElastic.enabled
+            value: "true" 
+          - name: operatorGlobal.enabled
+            value: "false" 
+          - name: helm_reposistory.enabled
+            value: "false" 
+    syncPolicy:
+      automated:
+        prune: false
+        selfHeal: false
+      syncOptions:
+        - CreateNamespace=false
+        - Validate=true
+      retry:
+        limit: 5
+        backoff:
+          duration: 5s
+          factor: 2
+          maxDuration: 5m
+    ignoreDifferences:
+      - group: operators.coreos.com
+        kind: OperatorGroup
+        namespace: "openshift-operators-redhat"
+        name: elasticsearch-operator
+        jsonPointers:
+          - /metadata/annotations/olm.providedAPIs
+- kind: Application
+  apiVersion: argoproj.io/v1alpha1
+  metadata:
+    name: startx-cluster-infra-operator
+    namespace: "${ARGOCD_NS}"
+    labels:  
+      app.startx.fr/scope: "${SCOPE}"
+      app.startx.fr/cluster: "${CLUSTER}"
+      app.startx.fr/component: "cluster-infra-operator"
+      app.kubernetes.io/name: "argoapp-cluster-infra-operator-application"
+      app.kubernetes.io/part-of: ${CLUSTER}
+      app.kubernetes.io/version: "${VERSION}"
+      app.kubernetes.io/component: "cluster-infra-operator"
+    annotations: 
+      openshift.io/generated-by: sxcm
+      # argocd.argoproj.io/manifest-generate-paths: .
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+  spec:
+    destination:
+      namespace: "${ARGOCD_NS}"
+      server: 'https://kubernetes.default.svc'
+    info:
+      - name: teammail
+        value: dev@startx.fr
+    project: cluster-admin
+    source:
+      path: charts/cluster-config/
+      repoURL: 'https://github.com/startxfr/helm-repository.git'
+      targetRevision: devel
+      helm:
+        valueFiles:
+          - values-startx-operator.yaml
+        parameters:
+          - name: context.scope
+            value: "${SCOPE}"
+          - name: context.cluster
+            value: "${CLUSTER}"
+          - name: context.environment
+            value: "${ENV}"
+          - name: context.version
+            value: "${VERSION}"
+          - name: context.app
+            value: "startx-infra"
+          - name: autoscaling.enabled
+            value: "false"
+          - name: clusterversion.enabled
+            value: "false"
+          - name: alertmanager.enabled
+            value: "false"
+          - name: imageprunner.enabled
+            value: "false"
+          - name: projecttemplate.enabled
+            value: "false" 
+          - name: redhat.operators
+            value: "false" 
+          - name: operatorElastic.enabled
+            value: "false" 
+          - name: operatorGlobal.enabled
+            value: "true" 
+          - name: helm_reposistory.enabled
+            value: "false" 
+    syncPolicy:
+      automated:
+        prune: false
+        selfHeal: false
+      syncOptions:
+        - CreateNamespace=false
+        - Validate=true
+      retry:
+        limit: 5
+        backoff:
+          duration: 5s
+          factor: 2
+          maxDuration: 5m
+    ignoreDifferences:
+      - group: operators.coreos.com
+        kind: OperatorGroup
+        namespace: "openshift-operators"
+        jsonPointers:
+          - /metadata/annotations
+          - /metadata/labels
+parameters:
+  - name: ARGOCD_NS
+    displayName: The namespace where argocd server goes to
+    description: "Namespace to place argocd server to"
+    value: startx-argocd
+  - name: SCOPE
+    displayName: Project scope
+    description: "Project scope (ex: sxv4)"
+    value: "sxv4"
+  - name: CLUSTER
+    displayName: Cluster name
+    description: "Name of the current cluster  (ex: sxsf)"
+    value: "sxsf"
+  - name: ENV
+    displayName: Project environment
+    description: "Project environment (ex: dev, factory, preprod or prod)"
+    value: "dev"
+  - name: VERSION
+    displayName: Project version
+    description: "Project deployed release"
+    value: "3.9.x-dev"
+  - name: CLUSTER_PROFILE
+    displayName: Name of the cluster profile
+    description: "The name of the cluster profile"
+    value: default
+

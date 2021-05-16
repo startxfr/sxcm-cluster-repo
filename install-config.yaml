@@ -7,7 +7,7 @@ metadata:
     description: "3 master (4Vcpu, 16Go RAM, 120Go gp2  120iop) +  3 worker ( 2Vcpu,   8Go RAM, 120Go gp2  120iop) - [AWS Paris ]"
     descriptionTab: "| 3  | 4  | 16  | 120 | gp2 | 120  | 3  | 2  | 8   | 120 | gp2 | 120  | AWS Paris "
     descriptionClusterconfig: argocd,pipeline,istio,quaysec,machine,workspaces
-    clusterconfig: argocd-project,argocd-deploy,infra,auth,rbac,infra,machine,console,storage,pipeline,istio,workspaces
+    clusterconfig: argocd-project,argocd-deploy-small,infra,auth,rbac,infra,machine,console,storage,pipeline,istio,workspaces
 compute:
   - name: worker
     hyperthreading: Enabled

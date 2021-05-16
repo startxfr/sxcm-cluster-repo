@@ -1,0 +1,205 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: sxv4-cluster-machine-template
+  annotations:
+    openshift.io/display-name: STARTX Cluster Machine config (admin)
+    description: Configure machine ressource to sxcm cluster configuration
+    iconClass: icon-openshift
+    tags: startx,cluster,config,admin,machine,machineset,iac,cluster
+    openshift.io/provider-display-name: STARTX
+    openshift.io/generated-by: sxcm
+    sxv4_console_timeout: "10"
+  labels:
+    template: sxv4-cluster-machine-template
+    app.kubernetes.io/name: "sxv4-cluster-machine-template"
+    app.kubernetes.io/managed-by: sxcm
+message: |-
+  Your cluster-wide machine support is now configured.
+
+  Scope             : ${SCOPE}
+  Cluster           : ${CLUSTER}
+  Operator          : machine-operator.4.4.0
+labels:
+  template: sxv4-cluster-machine-template
+  app.kubernetes.io/managed-by: sxcm
+objects:
+- kind: Application
+  apiVersion: argoproj.io/v1alpha1
+  metadata:
+    name: startx-cluster-machine-health
+    namespace: "${ARGOCD_NS}"
+    labels:  &basic_labels
+      app.startx.fr/scope: "${SCOPE}"
+      app.startx.fr/cluster: "${CLUSTER}"
+      app.startx.fr/component: "cluster-machine"
+      app.kubernetes.io/name: "startx-cluster-machine-health-application"
+      app.kubernetes.io/part-of: ${CLUSTER}
+      app.kubernetes.io/version: "${VERSION}"
+      app.kubernetes.io/component: "cluster-machine"
+    annotations: &basic_annotations
+      openshift.io/generated-by: sxcm
+      # argocd.argoproj.io/manifest-generate-paths: .
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+  spec:
+    destination:
+      namespace: "${NS}"
+      server: 'https://kubernetes.default.svc'
+    info:
+      - name: teammail
+        value: dev@startx.fr
+    project: cluster-admin
+    source:
+      path: charts/cluster-machine/
+      repoURL: 'https://github.com/startxfr/helm-repository.git'
+      targetRevision: devel
+      helm:
+        valueFiles:
+          - values-startx-${CLUSTER_PROFILE}.yaml
+        parameters:
+          - name: context.scope
+            value: "${SCOPE}"
+          - name: context.cluster
+            value: "${CLUSTER}"
+          - name: context.environment
+            value: "${ENV}"
+          - name: context.version
+            value: "${VERSION}"
+          - name: context.app
+            value: "${NS}"
+          - name: cluster.id
+            value: "${CLUSTERID}"
+          - name: cluster.region
+            value: "${CLUSTER_REGION}"
+          - name: cluster.autoscaler.enabled
+            value: "false"
+          - name: machineHealthCheck.enabled
+            value: "true"
+          - name: machineAutoscaler.enabled
+            value: "false"
+          - name: machineSet.enabled
+            value: "false"
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+      syncOptions:
+        - CreateNamespace=false
+        - Validate=true
+      retry:
+        limit: 5
+        backoff:
+          duration: 5s
+          factor: 2
+          maxDuration: 5m
+- kind: Application
+  apiVersion: argoproj.io/v1alpha1
+  metadata:
+    name: startx-cluster-machine-autoscaler
+    namespace: "${ARGOCD_NS}"
+    labels: 
+      app.startx.fr/scope: "${SCOPE}"
+      app.startx.fr/cluster: "${CLUSTER}"
+      app.startx.fr/component: "cluster-machine"
+      app.kubernetes.io/name: "startx-cluster-machine-autoscaler-application"
+      app.kubernetes.io/part-of: ${CLUSTER}
+      app.kubernetes.io/version: "${VERSION}"
+      app.kubernetes.io/component: "cluster-machine"
+    annotations:
+      openshift.io/generated-by: sxcm
+      # argocd.argoproj.io/manifest-generate-paths: .
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+  spec:
+    destination:
+      namespace: "${NS}"
+      server: 'https://kubernetes.default.svc'
+    info:
+      - name: teammail
+        value: dev@startx.fr
+    project: cluster-admin
+    source:
+      path: charts/cluster-machine/
+      repoURL: 'https://github.com/startxfr/helm-repository.git'
+      targetRevision: devel
+      helm:
+        valueFiles:
+          - values-startx-${CLUSTER_PROFILE}.yaml
+        parameters:
+          - name: context.scope
+            value: "${SCOPE}"
+          - name: context.cluster
+            value: "${CLUSTER}"
+          - name: context.environment
+            value: "${ENV}"
+          - name: context.version
+            value: "${VERSION}"
+          - name: context.app
+            value: "${NS}"
+          - name: cluster.id
+            value: "${CLUSTERID}"
+          - name: cluster.region
+            value: "${CLUSTER_REGION}"
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+      syncOptions:
+        - CreateNamespace=false
+        - Validate=true
+      retry:
+        limit: 5
+        backoff:
+          duration: 5s
+          factor: 2
+          maxDuration: 5m
+    # ignoreDifferences:
+    #   - group: operators.coreos.com
+    #     kind: OperatorGroup
+    #     namespace: "${NS}"
+    #     jsonPointers:
+    #       - /metadata/annotations/olm.providedAPIs
+parameters:
+  - name: ARGOCD_NS
+    displayName: The namespace where argocd server goes to
+    description: "Namespace to place argocd server to"
+    value: startx-argocd
+  - name: NS
+    displayName: The namespace where objects goes to
+    description: "Namespace to place objects to"
+    value: openshift-machine
+  - name: SCOPE
+    displayName: Project scope
+    description: "Project scope (ex: sxv4)"
+    value: sxv4
+  - name: CLUSTER
+    displayName: Cluster name
+    description: "Name of the current cluster  (ex: sxsf)"
+    value: sxsf
+  - name: ENV
+    displayName: Project environment
+    description: "Project environment (ex: dev, factory, preprod or prod)"
+    value: dev
+  - name: VERSION
+    displayName: Project version
+    description: "Project deployed release"
+    value: 3.9.x-dev
+  - name: CLUSTERID
+    displayName: Machine cluster ID
+    description: "The cluster ID used for machine configuration"
+    value: sxsf-xxxxx
+  - name: CLUSTER_REGION
+    displayName: AWS Cluster region
+    description: "The name of the AWS region used"
+    value: eu-west-3
+  - name: CLUSTER_PROFILE
+    displayName: Name of the cluster profile
+    description: "The name of the cluster profile"
+    value: default
+  - name: RHN_USER
+    displayName: RHN container access user
+    description: Redhat Network access user to the RH container catalog
+  - name: RHN_PASSWORD
+    displayName: RHN container access password
+    description: Redhat Network access password to the Rh container catalog

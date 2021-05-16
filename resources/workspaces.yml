@@ -1,0 +1,243 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: sxv4-cluster-workspaces-template
+  annotations:
+    openshift.io/display-name: STARTX cluster CodeReadyWorkspaces (admin)
+    description: Deploy cluster-wide resources to enable CodeReadyWorkspaces according to sxcm definitions
+    iconClass: icon-openshift
+    tags: startx,cluster,config,admin,workspaces
+    openshift.io/provider-display-name: STARTX
+    openshift.io/generated-by: sxcm
+    sxv4_console_timeout: "20"
+  labels:
+    template: sxv4-cluster-workspaces-template
+    app.kubernetes.io/name: "sxv4-cluster-workspaces-template"
+    app.kubernetes.io/managed-by: sxcm
+message: |-
+  Your code ready workspaces is now enabled
+
+  Scope             : ${SCOPE}
+  Cluster           : ${CLUSTER}
+  Operator          : crwoperator.v2.3.0
+labels:
+  template: sxv4-cluster-workspaces-template
+  app.kubernetes.io/managed-by: sxcm
+objects: 
+- kind: Application
+  apiVersion: argoproj.io/v1alpha1
+  metadata:
+    name: startx-cluster-workspace-project
+    namespace: "${ARGOCD_NS}"
+    labels:  &basic_labels
+      app.startx.fr/scope: "${SCOPE}"
+      app.startx.fr/cluster: "${CLUSTER}"
+      app.startx.fr/component: "cluster-workspaces"
+      app.kubernetes.io/name: "startx-cluster-workspace-project-application"
+      app.kubernetes.io/part-of: ${CLUSTER}
+      app.kubernetes.io/version: "${VERSION}"
+      app.kubernetes.io/component: "cluster-workspaces"
+    annotations: &basic_annotations
+      openshift.io/generated-by: sxcm
+      # argocd.argoproj.io/manifest-generate-paths: .
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+  spec:
+    destination:
+      namespace: "${NS}"
+      server: 'https://kubernetes.default.svc'
+    info:
+      - name: teammail
+        value: dev@startx.fr
+    project: cluster-admin
+    source:
+      path: charts/project/
+      repoURL: 'https://github.com/startxfr/helm-repository.git'
+      targetRevision: devel
+      helm:
+        releaseName: startx-workspace-project
+        valueFiles:
+          - values-startx-workspaces.yaml
+        parameters:
+          - name: context.scope
+            value: "${SCOPE}"
+          - name: context.cluster
+            value: "${CLUSTER}"
+          - name: context.environment
+            value: "${ENV}"
+          - name: context.version
+            value: "${VERSION}"
+          - name: context.app
+            value: "startx-workspaces"
+          - name: project.requester
+            value: "sxcm"
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+      syncOptions:
+        - CreateNamespace=false
+        - Validate=true
+      retry:
+        limit: 5
+        backoff:
+          duration: 5s
+          factor: 2
+          maxDuration: 30s
+- kind: Application
+  apiVersion: argoproj.io/v1alpha1
+  metadata:
+    name: startx-cluster-workspace-operator
+    namespace: "${ARGOCD_NS}"
+    labels:
+      app.startx.fr/scope: "${SCOPE}"
+      app.startx.fr/cluster: "${CLUSTER}"
+      app.startx.fr/component: "argocd"
+      app.kubernetes.io/name: "startx-cluster-workspace-operator-application"
+      app.kubernetes.io/part-of: ${CLUSTER}
+      app.kubernetes.io/version: "${VERSION}"
+      app.kubernetes.io/component: "argocd"
+    annotations:
+      openshift.io/generated-by: sxcm
+      # argocd.argoproj.io/manifest-generate-paths: .
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+  spec:
+    destination:
+      namespace: "${NS}"
+      server: 'https://kubernetes.default.svc'
+    info:
+      - name: teammail
+        value: dev@startx.fr
+    project: cluster-admin
+    source:
+      path: charts/operator/
+      repoURL: 'https://github.com/startxfr/helm-repository.git'
+      targetRevision: devel
+      helm:
+        releaseName: startx-workspace-operator
+        valueFiles:
+          - values-crw-2.3.0.yaml
+        parameters:
+          - name: context.scope
+            value: "${SCOPE}"
+          - name: context.cluster
+            value: "${CLUSTER}"
+          - name: context.environment
+            value: "${ENV}"
+          - name: context.version
+            value: "${VERSION}"
+          - name: context.app
+            value: "startx-workspaces"
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+      syncOptions:
+        - CreateNamespace=false
+        - Validate=true
+      retry:
+        limit: 5
+        backoff:
+          duration: 5s
+          factor: 2
+          maxDuration: 20s
+    ignoreDifferences:
+      - group: operators.coreos.com
+        kind: OperatorGroup
+        namespace: "${NS}"
+        jsonPointers:
+          - /metadata/annotations/olm.providedAPIs
+- kind: Application
+  apiVersion: argoproj.io/v1alpha1
+  metadata:
+    name: startx-cluster-workspace-instance
+    namespace: "${ARGOCD_NS}"
+    labels: 
+      app.startx.fr/scope: "${SCOPE}"
+      app.startx.fr/cluster: "${CLUSTER}"
+      app.startx.fr/component: "argocd"
+      app.kubernetes.io/name: "startx-cluster-workspace-instance-application"
+      app.kubernetes.io/part-of: ${CLUSTER}
+      app.kubernetes.io/version: "${VERSION}"
+      app.kubernetes.io/component: "argocd"
+    annotations:
+      openshift.io/generated-by: sxcm
+      # argocd.argoproj.io/manifest-generate-paths: .
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+  spec:
+    destination:
+      namespace: "${NS}"
+      server: 'https://kubernetes.default.svc'
+    info:
+      - name: teammail
+        value: dev@startx.fr
+    project: cluster-admin
+    source:
+      path: charts/cluster-workspace/
+      repoURL: 'https://github.com/startxfr/helm-repository.git'
+      targetRevision: devel
+      helm:
+        releaseName: startx-workspace-instance
+        valueFiles:
+          - values-startx.yaml
+        parameters:
+          - name: context.scope
+            value: "${SCOPE}"
+          - name: context.cluster
+            value: "${CLUSTER}"
+          - name: context.environment
+            value: "${ENV}"
+          - name: context.version
+            value: "${VERSION}"
+          - name: context.app
+            value: "startx-workspaces"
+          - name: project.enabled
+            value: "false"
+          - name: operator.enabled
+            value: "false"
+          - name: cheCluster.enabled
+            value: "true"
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+      syncOptions:
+        - CreateNamespace=false
+        - Validate=true
+      retry:
+        limit: 3
+        backoff:
+          duration: 50s
+          factor: 2
+          maxDuration: 300s
+parameters:
+  - name: ARGOCD_NS
+    displayName: The namespace where argocd server goes to
+    description: "Namespace to place argocd server to"
+    value: startx-argocd
+  - name: NS
+    displayName: The namespace where objects goes to
+    description: "Namespace to place objects to"
+    value: openshift-workspaces
+  - name: SCOPE
+    displayName: Project scope
+    description: "Project scope (ex: sxv4)"
+    value: sxv4
+  - name: CLUSTER
+    displayName: Cluster name
+    description: "Name of the current cluster  (ex: sxsf)"
+    value: sxsf
+  - name: ENV
+    displayName: Project environment
+    description: "Project environment (ex: dev, factory, preprod or prod)"
+    value: dev
+  - name: VERSION
+    displayName: Project version
+    description: "Project deployed release"
+    value: 3.9.x-dev
+  - name: CLUSTER_PROFILE
+    displayName: Name of the cluster profile
+    description: "The name of the cluster profile"
+    value: default
